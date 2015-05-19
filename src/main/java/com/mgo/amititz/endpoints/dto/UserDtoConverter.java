@@ -13,6 +13,9 @@ public class UserDtoConverter implements IUserDtoConverter {
 	 */
 	@Override
 	public UserDto convertUserEntity(UserEntity userEntity) {
+		if (userEntity == null) {
+			return null;
+		}
 		UserDto ret = new UserDto();
 		ret.setFirstName(userEntity.getFirstName());
 		ret.setLastName(userEntity.getLastName());
@@ -29,6 +32,9 @@ public class UserDtoConverter implements IUserDtoConverter {
 	 */
 	@Override
 	public UserEntity convertUserDto(UserDto userDto) {
+		if (userDto == null) {
+			return null;
+		}
 		UserEntity ret = new UserEntity();
 		ret.setFirstName(userDto.getFirstName());
 		ret.setLastName(userDto.getLastName());

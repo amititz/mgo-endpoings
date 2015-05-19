@@ -28,13 +28,20 @@ public class UserController {
 	public ResponseEntity<?> getUsers(
 			@RequestParam(value="filterField", required=false) String filterField, 
 			@RequestParam(value="filterValue", required=false) String filterValue, 
-			@RequestParam(value="groupBy", required=false, defaultValue="") String groupByField) {
+			@RequestParam(value="groupBy", required=false, defaultValue="") String groupByField,
+			@RequestParam(value="page", required=false, defaultValue="") String page,
+			@RequestParam(value="pageSize", required=false, defaultValue="") String pageSize) {
 
 		Collection<UserGroupDto> result;
 		try {
-			result = this.userService.findUsers(filterField, filterValue, groupByField);
+			if (page != null && !page.isEmpty() && pageSize != null && !pageSize.isEmpty()) {
+				result = this.userService.findUsers(filterField, filterValue, groupByField, Integer.parseInt(page), Integer.parseInt(pageSize));
+			} else {
+				result = this.userService.findUsers(filterField, filterValue, groupByField);
+			}
 			return new ResponseEntity<>(result, HttpStatus.OK);
-		} catch (InvalidFieldException e) {
+			
+		} catch (Exception e) {
 			String message = String.format("Error processing request: %s", e.getMessage());
 			return new ResponseEntity<>(message, HttpStatus.BAD_REQUEST);
 		}

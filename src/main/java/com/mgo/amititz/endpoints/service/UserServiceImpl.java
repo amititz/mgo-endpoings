@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
@@ -23,18 +25,23 @@ public class UserServiceImpl implements IUserService {
 		private static Map<String, IUserFieldGetter> fieldGetters = new HashMap<String, IUserFieldGetter>();
 		private static Map<String, IUserRepositoryFindByFieldValue> findMethods = new HashMap<String, IUserRepositoryFindByFieldValue>();
 
+		// TODO: we can create a configurable mapping from user input to these names based on configuration
+		private static final String FIRST_NAME = "firstName";
+		private static final String LAST_NAME = "lastName";
+		private static final String CITY = "city";
+		private static final String STATE = "state";
+		
 		static  {
 			
-			// TODO: these can be initialized based on configuration
-			fieldGetters.put("firstName", u -> u.getFirstName());
-			fieldGetters.put("lastName", u -> u.getLastName());
-			fieldGetters.put("city", u -> u.getCity());
-			fieldGetters.put("state", u -> u.getState());
+			fieldGetters.put(FIRST_NAME, u -> u.getFirstName());
+			fieldGetters.put(LAST_NAME, u -> u.getLastName());
+			fieldGetters.put(CITY, u -> u.getCity());
+			fieldGetters.put(STATE, u -> u.getState());
 			
-			findMethods.put("firstName", (r, v) -> r.findByFirstName(v));
-			findMethods.put("lastName", (r, v) -> r.findByLastName(v));
-			findMethods.put("city", (r, v) -> r.findByCity(v));
-			findMethods.put("state", (r, v) -> r.findByState(v));
+			findMethods.put(FIRST_NAME, (r, v) -> r.findByFirstName(v));
+			findMethods.put(LAST_NAME, (r, v) -> r.findByLastName(v));
+			findMethods.put(CITY, (r, v) -> r.findByCity(v));
+			findMethods.put(STATE, (r, v) -> r.findByState(v));
 		}
 
 		public IUserFieldGetter getFieldGetter(String fieldName) {
@@ -80,16 +87,29 @@ public class UserServiceImpl implements IUserService {
 	@Override
 	public Collection<UserGroupDto> findUsers(String filterField, String filterValue, String groupingField) throws InvalidFieldException {
 		
+		// find the repository finder method based on the filter field, and call it
 		IUserRepositoryFindByFieldValue finderMethod = getFinderMethod(filterField);
-
 		List<UserEntity> userEntityList = finderMethod.find(this.entityRepository, filterValue);
+		return groupUsers(userEntityList, groupingField);
+	}
+
+	
+	@Override
+	public Collection<UserGroupDto> findUsers(String filterField, String filterValue, String groupingField, int pageNum, int pageSize) throws InvalidFieldException {
+		
+		// To save time, in this overload only, I'm always finding by State. The non-paged version uses
+		// the filterField to determine the find method to call on the repository. 
+		Page<UserEntity> page = this.entityRepository.findByState(filterValue, new PageRequest(pageNum, pageSize));
+		List<UserEntity> userEntityList = page.getContent(); 
+		return groupUsers(userEntityList, groupingField);
+	}
+	
+	private Collection<UserGroupDto> groupUsers(List<UserEntity> userEntityList, String groupingField) throws InvalidFieldException {
 		if (userEntityList.size() > 0) {
 			List<UserDto> userDtoList = convertEntityList(userEntityList);
 			return this.userGrouping.groupUsers(userDtoList, groupingField);
 		}
-		
 		return new ArrayList<UserGroupDto>();
-		
 	}
 	
 	private IUserRepositoryFindByFieldValue getFinderMethod(String filterField) throws InvalidFieldException {
